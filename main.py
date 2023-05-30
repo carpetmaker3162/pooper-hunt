@@ -10,7 +10,8 @@ pygame.font.init()
 
 ENEMY_STATE_CHANGE = pygame.USEREVENT + 1
 
-CRATES = [ # x, y, w, h
+# crate locations (x, y, width, height)
+CRATES = [
     (100, 400, 100, 100),
     (200, 300, 100, 100)
 ]
@@ -25,10 +26,13 @@ class Spawn:
 
     def update(self):
         current_time = pygame.time.get_ticks()
+
+        # indicate that an enemy should be spawned
         if current_time - self.last_spawn >= self.next_enemy:
             self.next_enemy = random.randint(self.min, self.max)
             self.last_spawn = current_time
             return True
+
         return False
 
 class Game:
@@ -45,11 +49,12 @@ class Game:
         pygame.time.set_timer(ENEMY_STATE_CHANGE, 1000)
         self.stopped = False
 
-        # create object groups
+        # create entity groups
         self.enemies = pygame.sprite.Group()
         self.crates = pygame.sprite.Group()
         self.spawns = []
         self.bullets = []
+        self.MAX_DISTANCE = 1000
         self.spawns.append(Spawn((450, 300), range(1000, 2000))) # change later
         for crate in CRATES:
             x, y, w, h = crate
@@ -62,20 +67,25 @@ class Game:
             if event.type == pygame.QUIT:
                 self.stopped = True
                 return
+            # 1 second game timer for updating enemy states
             elif event.type == ENEMY_STATE_CHANGE:
                 for enemy in self.enemies:
                     if random.random() < 0.25:
                         enemy.change_dir()
+            # mouse click
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 self.process_mouse_events()
 
+    # ran when a mouse click is detected
     def process_mouse_events(self):
         mousex, mousey = self.mouse_pos
         self.shoot(mousex, mousey)
 
+    # update entity groups
     def update(self):
         self.mouse_pos = pygame.mouse.get_pos()
 
+        # draw + update enemies, + kill them if out of screen
         self.enemies.update(self.crates)
         for enemy in self.enemies:
             enemy.draw(self.screen)
@@ -84,15 +94,27 @@ class Game:
 
         self.crates.draw(self.screen)
         
+        # update bullets
         for bullet in self.bullets:
             bullet.move()
-            hit = bullet.check_for_hit(self.enemies)
-            if hit is not None:
-                hit.hp -= bullet.damage
-                self.bullets.remove(bullet)
 
+            # check if bullet is too far away or if it has hit a crate
+            if bullet.distance > self.MAX_DISTANCE or \
+                    bullet.check_for_hit(self.crates):
+                self.bullets.remove(bullet)
+                continue
+
+            # check if an enemy is hit by bullet
+            hits = bullet.check_for_hit(self.enemies)
+            if hits:
+                self.bullets.remove(bullet)
+                for hit in hits:
+                    hit.hp -= bullet.damage
+
+        # update spawns
         for spawn in self.spawns:
             spawner_state = spawn.update()
+            # spawn a new enemy (timer is in Spawn class)
             if spawner_state:
                 new_enemy = Enemy(
                     spawn=(spawn.x, spawn.y), 
@@ -105,16 +127,18 @@ class Game:
 
         pygame.display.flip()
 
+    # shoot a bullet at (x, y)
     def shoot(self, x, y):
         # keeping the bullet code but making it near hitscan for now
-        self.bullets.append(Bullet(spawn=(x, y), speed=100, dmg=80))
+        self.bullets.append(Bullet(spawn=(x, y), speed=1000, dmg=80))
 
     def loop(self):
         while not self.stopped:
             pygame.event.pump()
 
+            # draw background and fill screen
             self.screen.fill((255, 255, 255))
-            self.screen.blit(self.background, (0, 0))
+#            self.screen.blit(self.background, (0, 0))
 
             self.process_events()
             self.update()

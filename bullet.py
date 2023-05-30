@@ -13,10 +13,12 @@ class Bullet:
         self.active = True
 
     def check_for_hit(self, group):
+        res = []
         for entity in group:
-            if entity.distance == math.floor(self.distance) and entity.lies_on(self.x, self.y):
+            if entity.distance <= math.floor(self.distance) and entity.lies_on(self.x, self.y):
                 self.active = False
-                return entity
+                res.append(entity)
+        return res
 
     def move(self): # called per frame
         self.distance += self.speed

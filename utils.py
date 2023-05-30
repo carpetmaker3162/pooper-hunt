@@ -51,7 +51,10 @@ def find_xy_speed(speed: float, pos: tuple, goal: tuple):
 
     distance = math.sqrt(dx**2 + dy**2)
 
-    x_speed = (dx / distance) * speed
-    y_speed = (dy / distance) * speed
+    try:
+        x_speed = (dx / distance) * speed
+        y_speed = (dy / distance) * speed
+    except ZeroDivisionError:
+        return 0, 0
 
     return math.ceil(x_speed), math.ceil(y_speed)
