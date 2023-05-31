@@ -49,8 +49,9 @@ class Entity(pygame.sprite.Sprite):
     # update (move, and kill if hp < 0)
     def update(self):
         self.move(self.x_speed, self.y_speed)
-        if self.hp <= 0:
-            self.kill()
+        # hp check moved to Enemy class
+        # if self.hp <= 0:
+        #    self.kill()
 
     # draw hp bar
     def draw_hp_bar(self, screen: pygame.Surface, x_offset=0):

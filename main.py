@@ -16,6 +16,8 @@ CRATES = [
     (200, 300, 100, 100)
 ]
 
+font = pygame.font.Font("assets/VT323.ttf", 48)
+
 class Spawn:
     def __init__(self, spawn, frequency=range(5000, 10000)):
         self.x, self.y = spawn
@@ -41,13 +43,18 @@ class Game:
         self.width, self.height = 900, 600
         self.screen = pygame.display.set_mode((self.width, self.height), flags=pygame.SCALED)
         pygame.display.set_caption("PooperHunt")
+
+        # initialize assets
         self.background = get_image("background.png", self.width, self.height)
+        self.ammo_icon = get_image("ammo.png", 50, 50)
 
         # initialize game states and stuff
         self.fps = fps
         self.clock = pygame.time.Clock()
         pygame.time.set_timer(ENEMY_STATE_CHANGE, 1000)
         self.stopped = False
+        self.score = 0
+        self.ammo = 10
 
         # create entity groups
         self.enemies = pygame.sprite.Group()
@@ -138,7 +145,11 @@ class Game:
 
             # draw background and fill screen
             self.screen.fill((255, 255, 255))
-#            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(self.background, (0, 0))
+            self.screen.blit(
+                font.render("hello", True, (255, 221, 0)),
+                (50, 550))
+            self.screen.blit(self.ammo_icon, (0, 550))
 
             self.process_events()
             self.update()

@@ -1,9 +1,16 @@
 from entity import Entity
-from utils import find_nearest, find_xy_speed
+from utils import find_nearest, find_xy_speed, get_image
 import random
 import pygame
 
 MODES = ["wander", "panic", "hide"]
+
+IMAGES = {
+    "right": "canpooper_right_angry.png",
+    "left": "canpooper_left_angry.png",
+    "right_dead": "canpooper_right_angry_dead.png",
+    "left_dead": "canpooper_left_angry_dead.png",
+}
 
 class Movement:
     def __init__(self, x_speed, y_speed, start, duration):
@@ -52,7 +59,11 @@ class Enemy(Entity):
 
         super().update()
         
-        # hide if shot at (WIP)
+        # play death animation if enemy dies
+        if self.hp <= 0:
+            self.death_animation()
+
+        # hide if shot at
         if self.hp < self.comfort_hp and self.mode != "panic":
             self.panic(crates)
             self.comfort_hp = self.hp
@@ -72,14 +83,19 @@ class Enemy(Entity):
                 self.scheduled = []
                 self.x_speed = self.default_x_speed
                 self.y_speed = self.default_y_speed
-                return # prevent another peek from being scheduled (next block)
-            if not self.scheduled:
-                next_peek = random.randint(1000, 5000)
-                self.peek(current_time + next_peek, 400)
-            # stop when enemy is back behind crate
-            if any(crate.encloses(self) for crate in crates):
-                self.x_speed = 0
-                self.y_speed = 0
+            else:
+                if not self.scheduled:
+                    next_peek = random.randint(1000, 5000)
+                    self.peek(current_time + next_peek, 400)
+                # stop when enemy is back behind crate
+                if any(crate.encloses(self) for crate in crates):
+                    self.x_speed = 0
+                    self.y_speed = 0
+        
+        if self.x_speed < 0:
+            self.image = get_image(IMAGES["left"], 50, 50)
+        elif self.x_speed >= 0:
+            self.image = get_image(IMAGES["right"], 50, 50)
 
     def schedule_move(self, move: Movement):
         self.scheduled.append(move)
@@ -87,6 +103,17 @@ class Enemy(Entity):
     # change direction (left/right)
     def change_dir(self):
         self.x_speed *= -1
+    
+    def death_animation(self):
+        current_time = pygame.time.get_ticks()
+
+        if self.x_speed < 0:
+            self.image = get_image(IMAGES["left_dead"], 50, 50)
+        elif self.x_speed >= 0:
+            self.image = get_image(IMAGES["right_dead"], 50, 50)
+
+        self.schedule_move(Movement(0, -10, current_time, 100))
+        self.schedule_move(Movement(0, 8, current_time + 100, 10000))
 
     def peek(self, start, duration, speed=4):
         duration //= 2
