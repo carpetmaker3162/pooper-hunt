@@ -13,7 +13,7 @@ IMAGES = {
     "left_dead": "canpooper_left_angry_dead.png",
 }
 
-class Movement:
+class Action:
     def __init__(self, dx, dy, start, duration, y_accel=0):
         self.x_speed = round(dx / 60) # assuming 60 frames
         self.y_speed = round(dy / 60)
@@ -51,17 +51,21 @@ class Enemy(Entity):
     
     def update(self, crates):
         current_time = pygame.time.get_ticks()
+
+        # sort scheduled actions by start times
         self.scheduled.sort(key=lambda a: a.start)
-        for i, move in enumerate(self.scheduled):
-            if move.start + move.duration < current_time:
-                self.scheduled.remove(move)
-            elif move.start <= current_time <= move.start + move.duration:
-                self.x_speed = move.x_speed
-                self.y_speed = move.y_speed
-                self.y_speed += move.y_acceleration
+
+        for i, action in enumerate(self.scheduled):
+            if action.start + action.duration < current_time:
+                self.scheduled.remove(action)
+            elif action.start <= current_time <= action.start + action.duration:
+                self.x_speed = action.x_speed
+                self.y_speed = action.y_speed
+                self.y_speed += action.y_acceleration
                 self.scheduled[i].y_speed = self.y_speed
                 break
 
+        # move and other
         super().update()
         
         # play death animation if enemy dies
@@ -103,8 +107,8 @@ class Enemy(Entity):
         elif self.x_speed >= 0 and not self.dead:
             self.image = get_image(IMAGES["right"], 50, 50)
 
-    def schedule_move(self, move: Movement):
-        self.scheduled.append(move)
+    def schedule_action(self, action: Action):
+        self.scheduled.append(action)
 
     # change direction (left/right)
     def change_dir(self):
@@ -118,12 +122,12 @@ class Enemy(Entity):
         elif self.x_speed >= 0:
             self.image = get_image(IMAGES["right_dead"], 50, 50)
 
-        self.schedule_move(Movement(0, -1000, current_time, 10000, 0.5))
+        self.schedule_action(Action(0, -1000, current_time, 10000, 0.5))
 
     def peek(self, start, duration, dx, dy):
         duration //= 2
-        self.schedule_move(Movement(dx, dy, start, duration))
-        self.schedule_move(Movement(-dx, -dy, start + duration, duration))
+        self.schedule_action(Action(dx, dy, start, duration))
+        self.schedule_action(Action(-dx, -dy, start + duration, duration))
 
     # hide behind a crate
     def panic(self, crates):
