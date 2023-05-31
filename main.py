@@ -49,7 +49,7 @@ class Game:
         self.ammo_icon = get_image("ammo.png", 50, 50)
 
         # initialize game states and stuff
-        self.fps = fps
+        self.frame_cap = fps
         self.clock = pygame.time.Clock()
         pygame.time.set_timer(ENEMY_STATE_CHANGE, 1000)
         self.stopped = False
@@ -145,7 +145,7 @@ class Game:
 
             # draw background and fill screen
             self.screen.fill((255, 255, 255))
-            self.screen.blit(self.background, (0, 0))
+#            self.screen.blit(self.background, (0, 0))
             self.screen.blit(
                 font.render("hello", True, (255, 221, 0)),
                 (50, 550))
@@ -154,7 +154,7 @@ class Game:
             self.process_events()
             self.update()
 
-            self.clock.tick(self.fps)
+            self.clock.tick(self.frame_cap)
 
 if __name__ == "__main__":
     window = Game(fps=60)

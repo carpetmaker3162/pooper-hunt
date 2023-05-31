@@ -2,6 +2,7 @@ from entity import Entity
 from utils import find_nearest, find_xy_speed, get_image
 import random
 import pygame
+import math
 
 MODES = ["wander", "panic", "hide"]
 
@@ -13,11 +14,12 @@ IMAGES = {
 }
 
 class Movement:
-    def __init__(self, x_speed, y_speed, start, duration):
-        self.x_speed = x_speed
-        self.y_speed = y_speed
+    def __init__(self, dx, dy, start, duration, y_accel=0):
+        self.x_speed = math.ceil(dx / (duration / 60))
+        self.y_speed = math.ceil(dy / (duration / 60))
         self.start = start
         self.duration = duration # ms
+        self.y_acceleration = y_accel
 
 class Enemy(Entity):
     name = "enemy"
@@ -37,7 +39,7 @@ class Enemy(Entity):
         self.y_speed = y_speed
         self.default_x_speed = x_speed
         self.default_y_speed = y_speed
-        self.panic_multiplier = 2
+        self.panic_multiplier = 1
 
         # enemy state variables
         self.goal = None
@@ -45,22 +47,26 @@ class Enemy(Entity):
         self.scheduled = []
         self.recovery_time = float("inf") # time at which enemy stops hiding
         self.comfort_hp = self.max_hp # enemy panics if below comfort hp
+        self.dead = False
     
     def update(self, crates):
         current_time = pygame.time.get_ticks()
         self.scheduled.sort(key=lambda a: a.start)
-        for move in self.scheduled:
+        for i, move in enumerate(self.scheduled):
             if move.start + move.duration < current_time:
                 self.scheduled.remove(move)
             elif move.start <= current_time <= move.start + move.duration:
                 self.x_speed = move.x_speed
                 self.y_speed = move.y_speed
+                self.y_speed += move.y_acceleration
+                self.scheduled[i].y_speed = self.y_speed
                 break
 
         super().update()
         
         # play death animation if enemy dies
         if self.hp <= 0:
+            self.dead = True
             self.death_animation()
 
         # hide if shot at
@@ -86,15 +92,15 @@ class Enemy(Entity):
             else:
                 if not self.scheduled:
                     next_peek = random.randint(1000, 5000)
-                    self.peek(current_time + next_peek, 400)
+                    self.peek(current_time + next_peek, 1000, 100, 0)
                 # stop when enemy is back behind crate
                 if any(crate.encloses(self) for crate in crates):
                     self.x_speed = 0
                     self.y_speed = 0
         
-        if self.x_speed < 0:
+        if self.x_speed < 0 and not self.dead:
             self.image = get_image(IMAGES["left"], 50, 50)
-        elif self.x_speed >= 0:
+        elif self.x_speed >= 0 and not self.dead:
             self.image = get_image(IMAGES["right"], 50, 50)
 
     def schedule_move(self, move: Movement):
@@ -112,13 +118,12 @@ class Enemy(Entity):
         elif self.x_speed >= 0:
             self.image = get_image(IMAGES["right_dead"], 50, 50)
 
-        self.schedule_move(Movement(0, -10, current_time, 100))
-        self.schedule_move(Movement(0, 8, current_time + 100, 10000))
+        self.schedule_move(Movement(0, -1000, current_time, 10000, 0.5))
 
-    def peek(self, start, duration, speed=4):
+    def peek(self, start, duration, dx, dy):
         duration //= 2
-        self.schedule_move(Movement(speed, 0, start, duration))
-        self.schedule_move(Movement(-speed, 0, start + duration, duration))
+        self.schedule_move(Movement(dx, dy, start, duration))
+        self.schedule_move(Movement(-dx, -dy, start + duration, duration))
 
     # hide behind a crate
     def panic(self, crates):
