@@ -15,8 +15,8 @@ IMAGES = {
 
 class Movement:
     def __init__(self, dx, dy, start, duration, y_accel=0):
-        self.x_speed = math.ceil(dx / (duration / 60))
-        self.y_speed = math.ceil(dy / (duration / 60))
+        self.x_speed = round(dx / 60) # assuming 60 frames
+        self.y_speed = round(dy / 60)
         self.start = start
         self.duration = duration # ms
         self.y_acceleration = y_accel
@@ -92,7 +92,7 @@ class Enemy(Entity):
             else:
                 if not self.scheduled:
                     next_peek = random.randint(1000, 5000)
-                    self.peek(current_time + next_peek, 1000, 100, 0)
+                    self.peek(start = current_time + next_peek, duration=1000, dx=100, dy=0)
                 # stop when enemy is back behind crate
                 if any(crate.encloses(self) for crate in crates):
                     self.x_speed = 0
