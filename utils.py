@@ -58,3 +58,17 @@ def find_xy_speed(speed: float, pos: tuple, goal: tuple):
         return 0, 0
 
     return math.ceil(x_speed), math.ceil(y_speed)
+
+def find_damage_multiplier(entity, bulletx, bullety):
+    center = entity.rect.center # center of entity
+    radius = center[0] - entity.x # distance from entity center to the entity's edge
+    
+    # find how far the bullet landed from center of entity
+    x, y = center
+    dx = x - bulletx
+    dy = y - bullety
+    dist_from_center = math.sqrt(dx**2 + dy**2)
+
+    accuracy = (radius - dist_from_center) / radius
+
+    return max(0, accuracy)

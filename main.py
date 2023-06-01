@@ -1,6 +1,6 @@
 import pygame
 import random
-from utils import get_image
+from utils import get_image, find_damage_multiplier
 from enemy import Enemy
 from bullet import Bullet
 from props import Crate
@@ -118,7 +118,9 @@ class Game:
             if hits:
                 self.bullets.remove(bullet)
                 for hit in hits:
-                    hit.hp -= bullet.damage
+                    dmg_multiplier = find_damage_multiplier(hit, bullet.x, bullet.y)
+                    damage = bullet.damage * dmg_multiplier
+                    hit.hp -= damage
 
         # update spawns
         for spawn in self.spawns:
@@ -143,7 +145,7 @@ class Game:
     # shoot a bullet at (x, y)
     def shoot(self, x, y):
         # keeping the bullet code but making it near hitscan for now
-        self.bullets.append(Bullet(spawn=(x, y), speed=1000, dmg=80))
+        self.bullets.append(Bullet(spawn=(x, y), speed=1000, dmg=140))
 
     def loop(self):
         while not self.stopped:
