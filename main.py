@@ -43,10 +43,12 @@ class Game:
         self.width, self.height = 900, 600
         self.screen = pygame.display.set_mode((self.width, self.height), flags=pygame.SCALED)
         pygame.display.set_caption("PooperHunt")
+        pygame.mouse.set_visible(False)
 
         # initialize assets
         self.background = get_image("background.png", self.width, self.height)
         self.ammo_icon = get_image("ammo.png", 50, 50)
+        self.scope = get_image("scope.png", 100, 100)
 
         # initialize game states and stuff
         self.frame_cap = fps
@@ -131,6 +133,10 @@ class Game:
                     x_speed=2, 
                     y_speed=0)
                 self.enemies.add(new_enemy)
+
+        # draw scope
+        x, y = self.mouse_pos
+        self.screen.blit(self.scope, (x - 50, y - 50))
 
         pygame.display.flip()
 
