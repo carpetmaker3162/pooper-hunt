@@ -15,8 +15,9 @@ IMAGES = {
 
 class Action:
     def __init__(self, dx, dy, start, duration, y_accel=0):
-        self.x_speed = round(dx / 60) # assuming 60 frames
-        self.y_speed = round(dy / 60)
+        # assume 60 fps
+        self.x_speed = round(dx / (60 * (duration / 1000)))
+        self.y_speed = round(dy / (60 * (duration / 1000)))
         self.start = start
         self.duration = duration # ms
         self.y_acceleration = y_accel
@@ -105,7 +106,7 @@ class Enemy(Entity):
                 # schedule next time enemy peeks from behind crate
                 if not self.scheduled:
                     next_peek = random.randint(1000, 5000)
-                    self.peek(start = current_time + next_peek, duration=1000, dx=100, dy=0)
+                    self.peek(start = current_time + next_peek, duration=500, dx=100, dy=0)
                     
                 # stop when enemy is back behind crate (badly written code)
                 if any(crate.encloses(self) for crate in crates):
@@ -138,12 +139,14 @@ class Enemy(Entity):
 
         # make enemy fall (with y-acceleration to imitate gravity)
         current_time = pygame.time.get_ticks()
-        self.schedule_action(Action(0, -800, current_time, 10000, 0.8))
+        self.schedule_action(Action(0, -800, current_time, 1000, 0.8))
 
     # peek out from behind a crate
     def peek(self, start, duration, dx, dy):
         # duration is a there-and-back trip so divide it in half
         duration //= 2
+        dx //= 2
+        dy //= 2
 
         # schedule actions for there-and-back
         self.schedule_action(Action(dx, dy, start, duration))
