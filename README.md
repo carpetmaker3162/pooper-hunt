@@ -12,7 +12,7 @@ You are Can Pooper. You've come home after your [adventure in Poopland](https://
 ## Run
 
 ```
-$ git clone https://github.com/carpetmaker3162/pooper-adventures
-$ cd pooper-adventures
+$ git clone https://github.com/carpetmaker3162/pooper-hunt
+$ cd pooper-hunt
 $ python3 main.py
 ```
