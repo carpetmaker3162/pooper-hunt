@@ -1,5 +1,5 @@
 from entity import Entity
-from utils import find_nearest, find_xy_speed, get_image
+from utils import find_nearest, find_xy_speed, get_image, get_possible_displacement
 import random
 import pygame
 import math
@@ -43,9 +43,10 @@ class Enemy(Entity):
         self.panic_multiplier = 2 # amount speed is increased by when shot at
 
         # enemy state variables
-        self.goal = None
+        self.goal_pos = None # (x, y) top-left position of goal crate
+        self.goal_obj = None # goal crate object
         self.mode = "wander"
-        self.scheduled = [] # scheduled actions, for more complicated movement like peeking
+        self.scheduled = [] # queue of scheduled actions for more complicated movement like peeking
         self.recovery_time = float("inf") # time at which enemy stops hiding
         self.comfort_hp = self.max_hp # enemy panics if below comfort hp
         self.dead = False
@@ -74,7 +75,7 @@ class Enemy(Entity):
         super().update()
         
         # play death animation if enemy dies. do not attempt to schedule if already 
-        # dead, because then image will be changed to right_dead regardless of 
+    # dead, because then image will be changed to right_dead regardless of 
         # direction since x-speed is set to 0 by the death animation
         if self.hp <= 0 and not self.dead:
             self.dead = True
@@ -103,10 +104,23 @@ class Enemy(Entity):
                 self.x_speed = self.default_x_speed
                 self.y_speed = self.default_y_speed
             else:
-                # schedule next time enemy peeks from behind crate
+                # schedule next peek if no more peeks are scheduled
                 if not self.scheduled:
                     next_peek = random.randint(1000, 5000)
-                    self.peek(start = current_time + next_peek, duration=500, dx=100, dy=0)
+
+                    # get (dx, dy) for peeking up, down, left, right
+                    possible_peeks = get_possible_displacement(
+                        self.goal_obj, (self.x, self.y, self.width, self.height)) # cannot use self because not yet moved, change later
+
+                    # find x, y, and diagonal displacement
+                    dx, dy = random.choice(possible_peeks)
+                    d_diag = math.sqrt(dx**2 + dy**2)
+
+                    # peek
+                    self.peek(
+                        start = current_time + next_peek,
+                        duration=d_diag*10, # make speed remain constant (1000ms/100px = duration/d_diag)
+                        dx=dx, dy=dy)
                     
                 # stop when enemy is back behind crate (badly written code)
                 if any(crate.encloses(self) for crate in crates):
@@ -145,8 +159,8 @@ class Enemy(Entity):
     def peek(self, start, duration, dx, dy):
         # duration is a there-and-back trip so divide it in half
         duration //= 2
-        dx //= 2
-        dy //= 2
+#        dx //= 2
+#        dy //= 2
 
         # schedule actions for there-and-back
         self.schedule_action(Action(dx, dy, start, duration))
@@ -157,8 +171,8 @@ class Enemy(Entity):
         self.mode = "panic"
 
         # find nearest crate
-        nearest = find_nearest(self, crates)
-        self.goal = (nearest.x, nearest.y)
+        self.goal_obj = find_nearest(self, crates)
+        self.goal_pos = (self.goal_obj.x, self.goal_obj.y)
 
         # find what the diagonal speed would be normally
         default_speed = abs(self.default_x_speed**2 + self.default_y_speed**2)
@@ -167,4 +181,4 @@ class Enemy(Entity):
         # update x-speed and y-speed
         pos = (self.x, self.y)
         self.x_speed, self.y_speed = find_xy_speed(
-            default_speed, pos, self.goal)
+            default_speed, pos, self.goal_pos)

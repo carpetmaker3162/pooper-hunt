@@ -72,3 +72,15 @@ def find_damage_multiplier(entity, bulletx, bullety):
     accuracy = (radius - dist_from_center) / radius
 
     return max(0, accuracy)
+
+# return a list (4 directions) of possible (dx, dy) for entity to get fully out of crate
+def get_possible_displacement(crate, entity_xywh: tuple):
+    left, top, w, h = entity_xywh
+    right = left + w
+    bottom = top + h
+    return [
+        (crate.rect.left - right, 0), # left
+        (crate.rect.right - left, 0), # right
+        (0, crate.rect.bottom - top), # down
+        (0, crate.rect.top - bottom) # up
+    ]

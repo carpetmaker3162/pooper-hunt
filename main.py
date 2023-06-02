@@ -13,7 +13,7 @@ ENEMY_STATE_CHANGE = pygame.USEREVENT + 1
 # crate locations (x, y, width, height)
 CRATES = [
     (100, 400, 100, 100),
-    (200, 300, 100, 100)
+    (600, 300, 100, 100)
 ]
 
 font = pygame.font.Font("assets/VT323.ttf", 48)
@@ -56,7 +56,6 @@ class Game:
         pygame.time.set_timer(ENEMY_STATE_CHANGE, 1000)
         self.stopped = False
         self.score = 0
-        self.ammo = 10
 
         # create entity groups
         self.enemies = pygame.sprite.Group()
@@ -64,7 +63,7 @@ class Game:
         self.spawns = []
         self.bullets = []
         self.MAX_DISTANCE = 1000
-        self.spawns.append(Spawn((450, 300), range(1000, 2000))) # change later
+        self.spawns.append(Spawn((450, 300), range(500, 2000)))
         for crate in CRATES:
             x, y, w, h = crate
             self.crates.add(Crate((x, y), (w, h)))
@@ -109,7 +108,7 @@ class Game:
 
             # check if bullet is too far away or if it has hit a crate
             if bullet.distance > self.MAX_DISTANCE or \
-                    bullet.check_for_hit(self.crates):
+                    bullet.check_for_hit(self.crates, check_aoe=False):
                 self.bullets.remove(bullet)
                 continue
 
@@ -117,10 +116,18 @@ class Game:
             hits = bullet.check_for_hit(self.enemies)
             if hits:
                 self.bullets.remove(bullet)
+                score_added = 0
                 for hit in hits:
-                    dmg_multiplier = find_damage_multiplier(hit, bullet.x, bullet.y)
+                    dmg_multiplier = Bullet.find_dmg_multiplier(hit, bullet)
                     damage = bullet.damage * dmg_multiplier
-                    hit.hp -= damage
+
+                    dmg_multiplier = Bullet.find_aoe_dmg_multiplier(hit, bullet)
+                    aoe_damage = bullet.aoe_damage
+
+                    hit.hp -= max(damage, aoe_damage)
+                    if hit.hp <= 0:
+                        score_added = max(score_added * 2, 100)
+                self.score += score_added
 
         # update spawns
         for spawn in self.spawns:
@@ -145,7 +152,14 @@ class Game:
     # shoot a bullet at (x, y)
     def shoot(self, x, y):
         # keeping the bullet code but making it near hitscan for now
-        self.bullets.append(Bullet(spawn=(x, y), speed=1000, dmg=140))
+        self.bullets.append(Bullet(
+            spawn=(x, y),
+            speed=1000,
+            dmg=120,
+            aoe_dmg=0,
+            aoe_range=0,
+            apply_aoe_dropoff=False,
+        ))
 
     def loop(self):
         while not self.stopped:
@@ -155,7 +169,7 @@ class Game:
             self.screen.fill((255, 255, 255))
 #            self.screen.blit(self.background, (0, 0))
             self.screen.blit(
-                font.render("hello", True, (255, 221, 0)),
+                font.render(str(self.score), True, (255, 221, 0)),
                 (50, 550))
             self.screen.blit(self.ammo_icon, (0, 550))
 
@@ -168,4 +182,5 @@ if __name__ == "__main__":
     window = Game(fps=60)
     # pygame.display.set_icon(get_image("assets/canpooper_right.png", 200, 200))
     window.loop()
+    print(f"Score: {window.score}")
     pygame.quit()
