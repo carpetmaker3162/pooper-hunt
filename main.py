@@ -3,7 +3,7 @@ import random
 from utils import get_image, find_damage_multiplier
 from enemy import Enemy
 from bullet import Bullet
-from props import Crate
+from props import Crate, PopupText
 
 pygame.init()
 pygame.font.init()
@@ -16,7 +16,8 @@ CRATES = [
     (600, 300, 100, 100)
 ]
 
-font = pygame.font.Font("assets/VT323.ttf", 48)
+heading_font = pygame.font.Font("assets/VT323.ttf", 48)
+small_font = pygame.font.Font("assets/VT323.ttf", 24)
 
 class Spawn:
     def __init__(self, spawn, frequency=range(5000, 10000)):
@@ -60,6 +61,7 @@ class Game:
         # create entity groups
         self.enemies = pygame.sprite.Group()
         self.crates = pygame.sprite.Group()
+        self.popup_text = pygame.sprite.Group()
         self.spawns = []
         self.bullets = []
         self.MAX_DISTANCE = 1000
@@ -86,11 +88,13 @@ class Game:
 
     # ran when a mouse click is detected
     def process_mouse_events(self):
+        current_time = pygame.time.get_ticks()
         mousex, mousey = self.mouse_pos
         self.shoot(mousex, mousey)
 
     # update entity groups
     def update(self):
+        current_time = pygame.time.get_ticks()
         self.mouse_pos = pygame.mouse.get_pos()
 
         # draw + update enemies, + kill them if out of screen
@@ -101,6 +105,12 @@ class Game:
                 enemy.kill()
 
         self.crates.draw(self.screen)
+
+        for popuptext in self.popup_text:
+            if current_time >= popuptext.destroy:
+                popuptext.kill()
+            else:
+                popuptext.draw(self.screen)
         
         # update bullets
         for bullet in self.bullets:
@@ -118,16 +128,39 @@ class Game:
                 self.bullets.remove(bullet)
                 score_added = 0
                 for hit in hits:
+                    # find direct damage
                     dmg_multiplier = Bullet.find_dmg_multiplier(hit, bullet)
                     direct_damage = bullet.damage * dmg_multiplier
 
+                    # find aoe damage
                     dmg_multiplier = Bullet.find_aoe_dmg_multiplier(hit, bullet)
                     aoe_damage = bullet.aoe_damage * dmg_multiplier
 
+                    # apply the larger damage
                     damage = max(direct_damage, aoe_damage)
                     hit.hp -= damage
+
+                    # find hitmarker position
+                    if direct_damage < aoe_damage: # if using aoe damage
+                        dmg_x, dmg_y = hit.rect.center
+                    else:
+                        dmg_x, dmg_y = bullet.x, bullet.y
+                    offset_x = random.randint(-20, 10)
+                    offset_y = random.randint(-20, 10)
+
+                    # draw hitmarker
+                    self.popup_text.add(PopupText(
+                        text=str(int(damage)),
+                        spawn=(dmg_x + offset_x, dmg_y + offset_y),
+                        font=small_font,
+                        color=(0, 0, 255),
+                        destroy=current_time + 200))
+
+                    # multiply score by 2 for each enemy killed with 1 bullet
                     if hit.hp <= 0:
                         score_added = max(score_added * 2, 100)
+
+                # add score
                 self.score += score_added
 
         # update spawns
@@ -159,8 +192,7 @@ class Game:
             dmg=120,
             aoe_dmg=0,
             aoe_range=0,
-            apply_aoe_dropoff=True,
-        ))
+            apply_aoe_dropoff=True))
 
     def loop(self):
         while not self.stopped:
@@ -170,7 +202,7 @@ class Game:
             self.screen.fill((255, 255, 255))
 #            self.screen.blit(self.background, (0, 0))
             self.screen.blit(
-                font.render(str(self.score), True, (255, 221, 0)),
+                heading_font.render(str(self.score), True, (255, 221, 0)),
                 (50, 550))
             self.screen.blit(self.ammo_icon, (0, 550))
 
