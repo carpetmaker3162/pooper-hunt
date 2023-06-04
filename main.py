@@ -119,12 +119,13 @@ class Game:
                 score_added = 0
                 for hit in hits:
                     dmg_multiplier = Bullet.find_dmg_multiplier(hit, bullet)
-                    damage = bullet.damage * dmg_multiplier
+                    direct_damage = bullet.damage * dmg_multiplier
 
                     dmg_multiplier = Bullet.find_aoe_dmg_multiplier(hit, bullet)
-                    aoe_damage = bullet.aoe_damage
+                    aoe_damage = bullet.aoe_damage * dmg_multiplier
 
-                    hit.hp -= max(damage, aoe_damage)
+                    damage = max(direct_damage, aoe_damage)
+                    hit.hp -= damage
                     if hit.hp <= 0:
                         score_added = max(score_added * 2, 100)
                 self.score += score_added
@@ -158,7 +159,7 @@ class Game:
             dmg=120,
             aoe_dmg=0,
             aoe_range=0,
-            apply_aoe_dropoff=False,
+            apply_aoe_dropoff=True,
         ))
 
     def loop(self):
