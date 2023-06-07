@@ -29,7 +29,10 @@ class Bullet:
         dy = y - bullet.y
         dist_from_center = math.sqrt(dx**2 + dy**2)
 
-        dropoff = (radius - dist_from_center) / radius
+        try:
+            dropoff = (radius - dist_from_center) / radius
+        except ZeroDivisionError:
+            return 0
 
         return max(0, dropoff)
 
@@ -43,10 +46,13 @@ class Bullet:
         if entity_dist > bullet.aoe_range:
             return 0
 
-        if bullet.apply_aoe_dropoff:
-            dropoff = (bullet.aoe_range - entity_dist) / bullet.aoe_range
-        else:
-            dropoff = 1
+        try:
+            if bullet.apply_aoe_dropoff:
+                dropoff = (bullet.aoe_range - entity_dist) / bullet.aoe_range
+            else:
+                dropoff = 1
+        except ZeroDivisionError:
+            return 0
         
         return max(0, dropoff)
 

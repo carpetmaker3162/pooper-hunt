@@ -41,8 +41,9 @@ class Spawn:
 class Game:
     def __init__(self, fps=60):
         # initialize window
+        self.canvas_width, self.canvas_height = 900, 700
         self.width, self.height = 900, 600
-        self.screen = pygame.display.set_mode((self.width, self.height), flags=pygame.SCALED)
+        self.screen = pygame.display.set_mode((self.canvas_width, self.canvas_height), flags=pygame.SCALED)
         pygame.display.set_caption("PooperHunt")
         pygame.mouse.set_visible(False)
 
@@ -90,7 +91,9 @@ class Game:
     def process_mouse_events(self):
         current_time = pygame.time.get_ticks()
         mousex, mousey = self.mouse_pos
-        self.shoot(mousex, mousey)
+        # change bounds if a left menu is added (canvas x-y offset or something)
+        if mousex <= self.width and mousey <= self.height:
+            self.shoot(mousex, mousey)
 
     # update entity groups
     def update(self):
@@ -106,6 +109,7 @@ class Game:
 
         self.crates.draw(self.screen)
 
+        self.popup_text.update()
         for popuptext in self.popup_text:
             if current_time >= popuptext.destroy:
                 popuptext.kill()
@@ -149,16 +153,27 @@ class Game:
                     offset_y = random.randint(-20, 10)
 
                     # draw hitmarker
-                    self.popup_text.add(PopupText(
+                    new_hitmarker = PopupText(
                         text=str(int(damage)),
                         spawn=(dmg_x + offset_x, dmg_y + offset_y),
                         font=small_font,
                         color=(0, 0, 255),
-                        destroy=current_time + 200))
+                        destroy=current_time + 200)
+                    self.popup_text.add(new_hitmarker)
+                    new_hitmarker.x_speed = random.random() * 2 - 1
+                    new_hitmarker.y_speed = random.random() * -1
 
                     # multiply score by 2 for each enemy killed with 1 bullet
                     if hit.hp <= 0:
                         score_added = max(score_added * 2, 100)
+                        new_hitmarker = PopupText(
+                            text="+" + str(score_added),
+                            spawn=(dmg_x, dmg_y),
+                            font=small_font,
+                            color=(205, 205, 0),
+                            destroy=current_time + 400)
+                        self.popup_text.add(new_hitmarker)
+                        new_hitmarker.y_speed = -2
 
                 # add score
                 self.score += score_added
@@ -192,7 +207,7 @@ class Game:
             dmg=120,
             aoe_dmg=0,
             aoe_range=0,
-            apply_aoe_dropoff=True))
+            apply_aoe_dropoff=False))
 
     def loop(self):
         while not self.stopped:
@@ -202,9 +217,9 @@ class Game:
             self.screen.fill((255, 255, 255))
 #            self.screen.blit(self.background, (0, 0))
             self.screen.blit(
-                heading_font.render(str(self.score), True, (255, 221, 0)),
-                (50, 550))
-            self.screen.blit(self.ammo_icon, (0, 550))
+                heading_font.render("Score: " + str(self.score), True, (255, 221, 0)),
+                (10, 550))
+#            self.screen.blit(self.ammo_icon, (0, 550))
 
             self.process_events()
             self.update()
