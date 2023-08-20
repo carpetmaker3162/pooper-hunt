@@ -1,5 +1,6 @@
 # pooper-hunt
 Pooper Hunt, the sequel to Pooper Adventures
+Incomplete (and probably going to remain so)
 
 ## Plot
 
